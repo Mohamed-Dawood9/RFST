@@ -1,0 +1,358 @@
+﻿@model GP.PL.VIewModel.PatientAppointmentViewModel
+
+@{
+    ViewData["Title"] = "Appointments";
+}
+
+<section class="vh-100 background">
+    <div class="container py-5">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white fs-3 text-center">
+                Patient Information
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12 col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Name:</label>
+                            <span>@Model.Patient.Name</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Phone Number:</label>
+                            <span>@Model.Patient.Phone</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Address:</label>
+                            <span>@Model.Patient.Address</span>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Age:</label>
+                            <span>@Model.Patient.Age</span>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Email:</label>
+                            <span>@Model.Patient.Email</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container-fluid w-75">
+        <button type="button" class="btn btn-danger mb-3" data-bs-toggle="modal" data-bs-target="#createModal">
+            Create New Appointment <i class="fas fa-calendar-plus ms-2"></i>
+        </button>
+    </div>
+
+    @if (Model.Appointments.Any())
+    {
+        <div class="container-fluid w-75">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th colspan="3" class="d-flex justify-content-center appointmentAction ">Appointment Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var appointment in Model.Appointments)
+                        {
+                            <tr>
+                                <td>@appointment.Date.ToShortDateString()</td>
+                                <td colspan="3">
+                                    <div class="actions d-flex justify-content-center flex-wrap gap-2">
+                                        <a href="@Url.Action("Details", "Appointment", new { id = appointment.Id })" class="btn btn-primary">
+                                            <i class="fas fa-eye mx-1"></i>3D Details
+                                        </a>
+                                        @if (appointment.Analysis != null)
+                                        {
+                                            <a href="@Url.Action("Details", "Analysis", new { id = appointment.Analysis.Id })" class="btn btn-secondary">
+                                                <i class="fas fa-eye mx-1"></i>2D Details
+                                            </a>
+                                        }
+                                        <button class="btn btn-warning download-report-btn" data-id="@appointment.Id">
+                                            <i class="fas fa-file-pdf mx-1"></i>Download PDF Report
+                                        </button>
+                                        <button class="btn btn-danger delete-btn" data-id="@appointment.Id" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                            <i class="fas fa-trash mx-1"></i>Delete
+                                        </button>
+                                        
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="container mt-4 alert alert-warning">
+            <h3>No Appointments Found</h3>
+        </div>
+    }
+
+    <!-- Create Modal -->
+    <div class="modal fade" id="createModal" tabindex="-1" aria-labelledby="CreateModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="CreateModalLabel">Create Appointment</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createForm" enctype="multipart/form-data">
+                        <div class="mb-3">
+                            <label for="photo" class="form-label">Upload Image (.jpg or .jpeg)</label>
+                            <input type="file" class="form-control" id="photo" name="photo" accept=".jpg,.jpeg" required>
+                        </div>
+                        <input type="hidden" name="patientId" value="@Model.Patient.Id" />
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-primary" id="createSubmit">Create</button>
+                    </form>
+                    <div id="createLoading" class="loading-overlay" style="display: none;">
+                        <div class="custom-spinner"></div>
+                        <span class="loading-text">Creating Appointment..</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Confirm Deletion</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete this appointment?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Loading Overlay -->
+    <div id="downloadLoading" class="loading-overlay" style="display: none;">
+        <div class="custom-spinner"></div>
+        <span class="loading-text">Generating PDF Report..</span>
+    </div>
+
+    <!-- Success Notification for Creation -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1050">
+        <div id="createSuccessToast" class="toast" role="alert" aria-label="Success" data-bs-delay="4000">
+            <div class="toast-header bg-success text-white">
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                Successfully created appointment!
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Notification for Deletion -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1060">
+        <div id="deleteSuccessToast" class="toast" role="alert" aria-label="Success" data-bs-delay="4000">
+            <div class="toast-header bg-success text-white">
+                <strong class="me-auto">Success</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                Successfully deleted appointment!
+            </div>
+        </div>
+    </div>
+
+    <!-- Error Notification -->
+    <div class="position-fixed top-0 end-0 p-3" style="z-index: 1070">
+        <div id="errorToast" class="toast" role="alert" aria-label="Error" data-bs-delay="4000">
+            <div class="toast-header bg-danger text-white">
+                <strong class="me-auto">Error</strong>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body"></div>
+        </div>
+    </div>
+</section>
+
+@section Scripts {
+    <script>
+        $(document).ready(function () {
+            // Initialize Bootstrap toasts
+            const createToast = new bootstrap.Toast($('#createSuccessToast'));
+            const deleteToast = new bootstrap.Toast($('#deleteSuccessToast'));
+            const errorToast = new bootstrap.Toast($('#errorToast'));
+
+            // Handle form submission for creating an appointment
+            $('#createForm').on('submit', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                const formData = new FormData(this);
+                $('#createModal .modal-content').addClass('loading');
+                $('#createLoading').show();
+                $('#createSubmit').prop('disabled', true);
+
+                $.ajax({
+                    url: '@Url.Action("Create", "Appointment")',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    xhrFields: { withCredentials: true },
+                    success: function (data) {
+                        console.log('Create AJAX Response:', data);
+                        $('#createLoading').hide();
+                        $('#createModal .modal-content').removeClass('loading');
+                        $('#createSubmit').prop('disabled', false);
+                        if (data && data.success) {
+                            $('#createModal').modal('hide');
+                            $('#createModal').on('hidden.bs.modal', function () {
+                                createToast.show();
+                                setTimeout(() => {
+                                    location.reload();
+                                }, 5000);
+                            });
+                        } else {
+                            $('#createModal').modal('hide');
+                            $('#errorToast .toast-body').text(data && data.message ? data.message : 'Failed to create appointment.');
+                            errorToast.show();
+                        }
+                    },
+                    error: function (xhr) {
+                        console.log('Create AJAX Error:', xhr);
+                        $('#createLoading').hide();
+                        $('#createModal .modal-content').removeClass('loading');
+                        $('#createSubmit').prop('disabled', false);
+                        $('#createModal').modal('hide');
+                        let errorMessage = 'Failed to create appointment.';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.message) errorMessage = response.message;
+                        } catch (e) { }
+                        $('#errorToast .toast-body').text(errorMessage);
+                        errorToast.show();
+                    }
+                });
+            });
+
+            // Trigger form submission on button click
+            $('#createSubmit').on('click', function () {
+                $('#createForm').trigger('submit');
+            });
+
+            // Handle deletion
+            let appointmentIdToDelete = null;
+            $('.delete-btn').on('click', function () {
+                appointmentIdToDelete = $(this).data('id');
+                $('#deleteModal').modal('show');
+            });
+
+            $('#confirmDelete').on('click', function () {
+                if (appointmentIdToDelete) {
+                    $('#deleteModal .modal-content').addClass('loading');
+                    $('#deleteLoading').show();
+                    $('#confirmDelete').prop('disabled', true);
+                    $('#deleteModal .btn-secondary').prop('disabled', true);
+
+                    $.ajax({
+                        url: '@Url.Action("Delete", "Appointment")',
+                        type: 'POST',
+                        data: {
+                            id: appointmentIdToDelete,
+                            __RequestVerificationToken: $('input[name="__RequestVerificationToken"]').val()
+                        },
+                        success: function (data) {
+                            console.log('Delete AJAX Response:', data);
+                            $('#deleteLoading').hide();
+                            $('#deleteModal .modal-content').removeClass('loading');
+                            $('#confirmDelete').prop('disabled', false);
+                            $('#deleteModal .btn-secondary').prop('disabled', false);
+                            if (data && data.success) {
+                                $('#deleteModal').modal('hide');
+                                $('#deleteModal').on('hidden.bs.modal', function () {
+                                    deleteToast.show();
+                                    setTimeout(() => {
+                                        location.reload();
+                                    }, 5000);
+                                });
+                            } else {
+                                $('#deleteModal').modal('hide');
+                                $('#errorToast .toast-body').text(data && data.message ? data.message : 'Failed to delete appointment.');
+                                errorToast.show();
+                            }
+                        },
+                        error: function (xhr) {
+                            console.log('Delete AJAX Error:', xhr);
+                            $('#deleteLoading').hide();
+                            $('#deleteModal .modal-content').removeClass('loading');
+                            $('#confirmDelete').prop('disabled', false);
+                            $('#deleteModal .btn-secondary').prop('disabled', false);
+                            $('#deleteModal').modal('hide');
+                            let errorMessage = 'Failed to delete appointment.';
+                            try {
+                                const response = JSON.parse(xhr.responseText);
+                                if (response.message) errorMessage = response.message;
+                            } catch (e) { }
+                            $('#errorToast .toast-body').text(errorMessage);
+                            errorToast.show();
+                        }
+                    });
+                }
+            });
+
+            // Handle PDF download
+            $('.download-report-btn').on('click', function () {
+                const appointmentId = $(this).data('id');
+                $(this).prop('disabled', true);
+                $('#downloadLoading').show();
+
+                $.ajax({
+                    url: '@Url.Action("DownloadReport", "Appointment")',
+                    type: 'GET',
+                    data: { id: appointmentId },
+                    xhrFields: { responseType: 'blob' },
+                    success: function (data, status, xhr) {
+                        console.log('Download PDF AJAX Response:', status);
+                        $('#downloadLoading').hide();
+                        $('.download-report-btn').prop('disabled', false);
+
+                        // Create a blob URL for the PDF
+                        const blob = new Blob([data], { type: 'application/pdf' });
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Report_P${appointmentId}.pdf`; // Adjust filename as needed
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(url);
+                    },
+                    error: function (xhr) {
+                        console.log('Download PDF AJAX Error:', xhr);
+                        $('#downloadLoading').hide();
+                        $('.download-report-btn').prop('disabled', false);
+                        let errorMessage = 'Failed to generate PDF report.';
+                        try {
+                            const response = JSON.parse(xhr.responseText);
+                            if (response.message) errorMessage = response.message;
+                        } catch (e) { }
+                        $('#errorToast .toast-body').text(errorMessage);
+                        errorToast.show();
+                    }
+                });
+            });
+        });
+    </script>
+}
