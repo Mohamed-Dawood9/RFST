@@ -1,4 +1,5 @@
 🚀 Features
+
 👨‍⚕️ Doctor Module
 Registration & Authentication: Secure account creation and login for doctors.
 
@@ -51,10 +52,12 @@ Generates and downloads 2D or 3D reports.
 Deletes appointments when no longer needed.
 
 🚀 Getting Started
+
+
 Clone the repository and run the project using the .NET CLI.
 
 
-git clone https://github.com/your-username/your-repo-name.git
+git clone https://github.com/Mohamed-Dawood9/RFST
 cd your-repo-name
 dotnet build
 dotnet ef database update
